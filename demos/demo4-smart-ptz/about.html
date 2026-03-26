@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 4：PTZ 智慧自主巡視</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --accent:#3b82f6; --text:#e2e8f0; --dim:#64748b; --border:#334155; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+a { color:var(--accent); }
+.back { display:inline-block; padding:8px 16px; margin:1rem 2rem; color:var(--dim); text-decoration:none; font-size:0.9rem; }
+.back:hover { color:var(--text); }
+
+    .lang-btn { position:fixed; top:12px; right:16px; z-index:999; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:4px 14px; border-radius:999px; cursor:pointer; font-size:0.8rem; font-weight:600; backdrop-filter:blur(8px); }
+    .lang-btn:hover { background:rgba(255,255,255,0.25); }
+    .lang-zh { display:block; } .lang-en { display:none; }
+    body.en .lang-zh { display:none; } body.en .lang-en { display:block; }
+    
+
+    .about-content { max-width:800px; margin:0 auto; padding:1rem 2rem 3rem; }
+    .about-content h1 { font-size:1.8rem; margin-bottom:1rem; }
+    .about-content h2 { font-size:1.3rem; margin:1.5rem 0 0.8rem; color:var(--accent); }
+    .about-content h3 { font-size:1.05rem; margin:1.2rem 0 0.5rem; }
+    .about-content p { margin-bottom:0.8rem; line-height:1.7; }
+    .about-content ul, .about-content ol { margin:0.5rem 0 1rem 1.5rem; }
+    .about-content li { margin-bottom:0.3rem; line-height:1.6; }
+    .about-content table { width:100%; border-collapse:collapse; margin:0.5rem 0 1rem; }
+    .about-content th, .about-content td { padding:8px 12px; border:1px solid var(--border); text-align:left; font-size:0.9rem; }
+    .about-content th { background:rgba(255,255,255,0.05); }
+    .about-content code { background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85rem; }
+    
+</style>
+</head>
+<body>
+<button class="lang-btn" id="langToggle" onclick="toggleLang()">EN</button>
+<a class="back" href="/">← 返回 <span class="lang-en" style="display:none">← Back</span></a>
+
+    <div class="about-content">
+        <div class="lang-zh">
+            <h1>Demo 4：PTZ 智慧自主巡視</h1>
+            
+        <h2>功能說明</h2>
+        <p>利用 LeWM 的 surprise 訊號，讓攝影機<strong>自動決定巡視方向</strong>，優先監看高風險區域。</p>
+
+        <h3>核心演算法：資訊增益</h3>
+        <p><code>info_gain = 未觀測時間 × surprise 歷史均值</code></p>
+        <p>系統會自動切換到 info_gain 最高的區域，確保：</p>
+        <ul>
+            <li>長時間未觀測的區域會被優先巡視</li>
+            <li>歷史 surprise 高（曾有異常）的區域更常被關注</li>
+            <li>兩者結合 = 智慧巡視策略</li>
+        </ul>
+
+        <h3>使用流程</h3>
+        <ol>
+            <li><strong>設定區域</strong>：在 Setup 頁面設定 2-3 個監控區域（可用同一攝影機的不同 preset，或不同攝影機的 RTSP URL）</li>
+            <li><strong>載入模型</strong>：選擇 Demo 2 訓練好的 checkpoint</li>
+            <li><strong>開始巡視</strong>：開啟 Auto Patrol 模式，系統自動切換區域</li>
+        </ol>
+
+        <h3>區域卡片說明</h3>
+        <ul>
+            <li><strong>Surprise EMA</strong>：該區域的 surprise 指數移動平均</li>
+            <li><strong>Last seen</strong>：上次觀測距今多少秒</li>
+            <li><strong>Info gain</strong>：資訊增益值（越高越需要觀測）</li>
+            <li><strong>Alerts</strong>：累計異常警報次數</li>
+            <li><strong>藍色邊框</strong>：當前正在觀測的區域</li>
+            <li><strong>紅色閃爍</strong>：該區域曾有異常</li>
+        </ul>
+
+        <h3>手動控制</h3>
+        <p>點擊任意區域卡片可手動切換（會自動關閉 Auto Patrol），勾選 Auto Patrol 恢復自動模式。</p>
+        
+        </div>
+        <div class="lang-en">
+            <h1>Demo 4: Smart PTZ Patrol</h1>
+            
+        <h2>Feature Description</h2>
+        <p>Uses LeWM surprise signal to let the camera <strong>automatically decide patrol direction</strong>, prioritizing high-risk regions.</p>
+
+        <h3>Core Algorithm: Information Gain</h3>
+        <p><code>info_gain = time_since_last_observed × surprise_history_mean</code></p>
+        <p>System auto-switches to highest info_gain region:</p>
+        <ul>
+            <li>Long-unobserved regions get priority</li>
+            <li>Regions with history of anomalies get more attention</li>
+            <li>Combined = intelligent patrol strategy</li>
+        </ul>
+
+        <h3>Workflow</h3>
+        <ol>
+            <li><strong>Configure Regions</strong>: Set 2-3 monitoring regions in Setup (same camera presets or different RTSP URLs)</li>
+            <li><strong>Load Model</strong>: Select Demo 2 trained checkpoint</li>
+            <li><strong>Start Patrol</strong>: Enable Auto Patrol, system switches regions automatically</li>
+        </ol>
+
+        <h3>Region Card Info</h3>
+        <ul>
+            <li><strong>Surprise EMA</strong>: Exponential moving average of surprise</li>
+            <li><strong>Last seen</strong>: Seconds since last observation</li>
+            <li><strong>Info gain</strong>: Information gain value (higher = needs observation)</li>
+            <li><strong>Alerts</strong>: Cumulative anomaly alert count</li>
+            <li><strong>Blue border</strong>: Currently observed region</li>
+            <li><strong>Red flash</strong>: Region had anomalies</li>
+        </ul>
+
+        <h3>Manual Control</h3>
+        <p>Click any region card to switch manually (disables Auto Patrol). Check Auto Patrol to resume.</p>
+        
+        </div>
+    </div>
+    
+<script>
+    function toggleLang() {
+      document.body.classList.toggle('en');
+      const btn = document.getElementById('langToggle');
+      btn.textContent = document.body.classList.contains('en') ? '中文' : 'EN';
+      localStorage.setItem('lewm_lang', document.body.classList.contains('en') ? 'en' : 'zh');
+    }
+    // Restore language preference
+    if (localStorage.getItem('lewm_lang') === 'en') {
+      document.body.classList.add('en');
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('langToggle');
+        if (btn) btn.textContent = '中文';
+      });
+    }
+    </script>
+</body>
+</html>

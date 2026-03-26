@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 1：軌跡預測預警</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --accent:#3b82f6; --text:#e2e8f0; --dim:#64748b; --border:#334155; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+a { color:var(--accent); }
+.back { display:inline-block; padding:8px 16px; margin:1rem 2rem; color:var(--dim); text-decoration:none; font-size:0.9rem; }
+.back:hover { color:var(--text); }
+
+    .lang-btn { position:fixed; top:12px; right:16px; z-index:999; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:4px 14px; border-radius:999px; cursor:pointer; font-size:0.8rem; font-weight:600; backdrop-filter:blur(8px); }
+    .lang-btn:hover { background:rgba(255,255,255,0.25); }
+    .lang-zh { display:block; } .lang-en { display:none; }
+    body.en .lang-zh { display:none; } body.en .lang-en { display:block; }
+    
+
+    .about-content { max-width:800px; margin:0 auto; padding:1rem 2rem 3rem; }
+    .about-content h1 { font-size:1.8rem; margin-bottom:1rem; }
+    .about-content h2 { font-size:1.3rem; margin:1.5rem 0 0.8rem; color:var(--accent); }
+    .about-content h3 { font-size:1.05rem; margin:1.2rem 0 0.5rem; }
+    .about-content p { margin-bottom:0.8rem; line-height:1.7; }
+    .about-content ul, .about-content ol { margin:0.5rem 0 1rem 1.5rem; }
+    .about-content li { margin-bottom:0.3rem; line-height:1.6; }
+    .about-content table { width:100%; border-collapse:collapse; margin:0.5rem 0 1rem; }
+    .about-content th, .about-content td { padding:8px 12px; border:1px solid var(--border); text-align:left; font-size:0.9rem; }
+    .about-content th { background:rgba(255,255,255,0.05); }
+    .about-content code { background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85rem; }
+    
+</style>
+</head>
+<body>
+<button class="lang-btn" id="langToggle" onclick="toggleLang()">EN</button>
+<a class="back" href="/">← 返回 <span class="lang-en" style="display:none">← Back</span></a>
+
+    <div class="about-content">
+        <div class="lang-zh">
+            <h1>Demo 1：軌跡預測預警</h1>
+            
+        <h2>功能說明</h2>
+        <p>本系統結合 <strong>YOLO 人員偵測</strong>與 <strong>LeWM 世界模型</strong>，在人員<strong>尚未進入危險區域前</strong>提前發出預警。</p>
+
+        <h3>核心能力</h3>
+        <ul>
+            <li><strong>人員追蹤</strong>：YOLO v11 即時偵測畫面中所有人員的位置</li>
+            <li><strong>軌跡記錄</strong>：記錄每位人員的移動歷史（黃色實線）</li>
+            <li><strong>軌跡預測</strong>：LeWM 在 latent 空間預測未來 3 秒的移動方向（藍色虛線）</li>
+            <li><strong>危險預警</strong>：預測軌跡若進入危險區域，提前顯示「⚠️ WARNING: X 秒後進入危險區」</li>
+            <li><strong>即時警報</strong>：人員已在危險區域時，顯示「🚨 IN DANGER ZONE!」紅色警報</li>
+        </ul>
+
+        <h3>使用流程</h3>
+        <ol>
+            <li><strong>錄製</strong>：輸入 RTSP 攝影機網址，錄製 5 分鐘以上的場景影片（含 YOLO 人員標註）</li>
+            <li><strong>訓練</strong>：選擇錄製好的資料集，設定訓練參數（建議 30 epochs），開始訓練 LeWM + Position Probe</li>
+            <li><strong>偵測</strong>：載入訓練好的模型，設定危險區域座標，開始即時偵測</li>
+        </ol>
+
+        <h3>危險區域設定</h3>
+        <p>在偵測頁面右側可設定危險區域的座標（x1, y1, x2, y2），值為 0-1 的正規化座標。例如：</p>
+        <ul>
+            <li>右下角：x1=0.6, y1=0.7, x2=1.0, y2=1.0</li>
+            <li>左半邊：x1=0.0, y1=0.0, x2=0.5, y2=1.0</li>
+        </ul>
+
+        <h3>技術架構</h3>
+        <p>攝影機 → YOLO（人員 bbox）→ LeWM Encoder（latent embedding）→ Predictor（預測未來 embedding）→ Position Probe（從 embedding 回推 2D 位置）→ 軌跡外推 → 危險區域碰撞檢測</p>
+        
+        </div>
+        <div class="lang-en">
+            <h1>Demo 1: Trajectory Prediction</h1>
+            
+        <h2>Feature Description</h2>
+        <p>This system combines <strong>YOLO person detection</strong> with <strong>LeWM world model</strong> to warn <strong>before</strong> workers enter danger zones.</p>
+
+        <h3>Core Capabilities</h3>
+        <ul>
+            <li><strong>Person Tracking</strong>: YOLO v11 real-time detection of all persons</li>
+            <li><strong>Trajectory Recording</strong>: Movement history for each person (yellow solid line)</li>
+            <li><strong>Trajectory Prediction</strong>: LeWM predicts 3-second future path in latent space (blue dotted line)</li>
+            <li><strong>Danger Warning</strong>: "⚠️ WARNING: X seconds to danger" when predicted path enters danger zone</li>
+            <li><strong>Instant Alert</strong>: "🚨 IN DANGER ZONE!" red alert when person is already in zone</li>
+        </ul>
+
+        <h3>Workflow</h3>
+        <ol>
+            <li><strong>Record</strong>: Enter RTSP URL, record 5+ minutes of scene footage (with YOLO annotations)</li>
+            <li><strong>Train</strong>: Select dataset, set parameters (recommend 30 epochs), train LeWM + Position Probe</li>
+            <li><strong>Detect</strong>: Load model, set danger zone coordinates, start real-time detection</li>
+        </ol>
+
+        <h3>Danger Zone Configuration</h3>
+        <p>Set danger zone coordinates (x1, y1, x2, y2) as normalized 0-1 values. Examples:</p>
+        <ul>
+            <li>Bottom-right: x1=0.6, y1=0.7, x2=1.0, y2=1.0</li>
+            <li>Left half: x1=0.0, y1=0.0, x2=0.5, y2=1.0</li>
+        </ul>
+
+        <h3>Architecture</h3>
+        <p>Camera → YOLO (person bbox) → LeWM Encoder (latent embedding) → Predictor (future embedding) → Position Probe (2D position) → Trajectory extrapolation → Danger zone collision check</p>
+        
+        </div>
+    </div>
+    
+<script>
+    function toggleLang() {
+      document.body.classList.toggle('en');
+      const btn = document.getElementById('langToggle');
+      btn.textContent = document.body.classList.contains('en') ? '中文' : 'EN';
+      localStorage.setItem('lewm_lang', document.body.classList.contains('en') ? 'en' : 'zh');
+    }
+    // Restore language preference
+    if (localStorage.getItem('lewm_lang') === 'en') {
+      document.body.classList.add('en');
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('langToggle');
+        if (btn) btn.textContent = '中文';
+      });
+    }
+    </script>
+</body>
+</html>

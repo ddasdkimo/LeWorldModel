@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 2：VoE 物理異常偵測</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --accent:#3b82f6; --text:#e2e8f0; --dim:#64748b; --border:#334155; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+a { color:var(--accent); }
+.back { display:inline-block; padding:8px 16px; margin:1rem 2rem; color:var(--dim); text-decoration:none; font-size:0.9rem; }
+.back:hover { color:var(--text); }
+
+    .lang-btn { position:fixed; top:12px; right:16px; z-index:999; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:4px 14px; border-radius:999px; cursor:pointer; font-size:0.8rem; font-weight:600; backdrop-filter:blur(8px); }
+    .lang-btn:hover { background:rgba(255,255,255,0.25); }
+    .lang-zh { display:block; } .lang-en { display:none; }
+    body.en .lang-zh { display:none; } body.en .lang-en { display:block; }
+    
+
+    .about-content { max-width:800px; margin:0 auto; padding:1rem 2rem 3rem; }
+    .about-content h1 { font-size:1.8rem; margin-bottom:1rem; }
+    .about-content h2 { font-size:1.3rem; margin:1.5rem 0 0.8rem; color:var(--accent); }
+    .about-content h3 { font-size:1.05rem; margin:1.2rem 0 0.5rem; }
+    .about-content p { margin-bottom:0.8rem; line-height:1.7; }
+    .about-content ul, .about-content ol { margin:0.5rem 0 1rem 1.5rem; }
+    .about-content li { margin-bottom:0.3rem; line-height:1.6; }
+    .about-content table { width:100%; border-collapse:collapse; margin:0.5rem 0 1rem; }
+    .about-content th, .about-content td { padding:8px 12px; border:1px solid var(--border); text-align:left; font-size:0.9rem; }
+    .about-content th { background:rgba(255,255,255,0.05); }
+    .about-content code { background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85rem; }
+    
+</style>
+</head>
+<body>
+<button class="lang-btn" id="langToggle" onclick="toggleLang()">EN</button>
+<a class="back" href="/">← 返回 <span class="lang-en" style="display:none">← Back</span></a>
+
+    <div class="about-content">
+        <div class="lang-zh">
+            <h1>Demo 2：VoE 物理異常偵測</h1>
+            
+        <h2>功能說明</h2>
+        <p>利用 LeWM 世界模型的 <strong>Violation-of-Expectation（違反預期）</strong>機制，偵測場景中任何違反物理規律的異常事件。</p>
+
+        <h3>核心原理</h3>
+        <p>世界模型學習場景的「正常物理規律」後，會預測下一幀的 embedding。當實際觀測與預測有顯著差異時，產生 <strong>Surprise（驚訝值）</strong>。Surprise 超過動態閾值即觸發異常警報。</p>
+
+        <h3>能偵測的異常類型</h3>
+        <ul>
+            <li><strong>物體消失</strong>：原本存在的物體突然不見（22.4× surprise，94% 偵測率）</li>
+            <li><strong>物體瞬移</strong>：物體位置突然跳變（10.3× surprise，68% 偵測率）</li>
+            <li><strong>異常運動</strong>：不符合物理規律的移動（如人突然跌倒、設備異常振動）</li>
+            <li><strong>場景突變</strong>：任何超出模型預期的變化</li>
+        </ul>
+
+        <h3>與 YOLO 的差異</h3>
+        <table>
+            <tr><th>比較項目</th><th>YOLO</th><th>LeWM VoE</th></tr>
+            <tr><td>偵測方式</td><td>視覺模式匹配</td><td>物理規律違反</td></tr>
+            <tr><td>需要訓練類別？</td><td>是</td><td>否（自監督學習）</td></tr>
+            <tr><td>未知異常</td><td>無法偵測</td><td>可偵測</td></tr>
+            <tr><td>推論速度</td><td>~10ms</td><td>~9.6ms</td></tr>
+        </table>
+
+        <h3>使用流程</h3>
+        <ol>
+            <li><strong>錄製</strong>：錄製 5 分鐘「正常場景」影片（自監督，不需標註）</li>
+            <li><strong>訓練</strong>：30 epochs，約 37 分鐘（Mac M3）或 25 分鐘（DGX）</li>
+            <li><strong>偵測</strong>：即時畫面 + Surprise 波形圖 + 動態閾值 + 異常紅框</li>
+        </ol>
+
+        <h3>性能指標</h3>
+        <ul>
+            <li>模型參數：8.7M</li>
+            <li>推論速度：9.6ms / frame（Mac M3 MPS）</li>
+            <li>理論最大 FPS：104</li>
+            <li>可輕鬆支援 30fps 即時偵測</li>
+        </ul>
+        
+        </div>
+        <div class="lang-en">
+            <h1>Demo 2: VoE Anomaly Detection</h1>
+            
+        <h2>Feature Description</h2>
+        <p>Uses LeWM world model's <strong>Violation-of-Expectation (VoE)</strong> mechanism to detect any physics-violating anomaly in the scene.</p>
+
+        <h3>Core Principle</h3>
+        <p>The world model learns "normal physics" of a scene and predicts next-frame embeddings. When actual observation significantly differs from prediction, it generates a <strong>Surprise signal</strong>. Surprise exceeding dynamic threshold triggers anomaly alert.</p>
+
+        <h3>Detectable Anomaly Types</h3>
+        <ul>
+            <li><strong>Object Disappearance</strong>: Object suddenly vanishes (22.4× surprise, 94% detection)</li>
+            <li><strong>Object Teleportation</strong>: Object position suddenly jumps (10.3× surprise, 68% detection)</li>
+            <li><strong>Abnormal Motion</strong>: Physics-violating movement (falls, equipment vibration)</li>
+            <li><strong>Scene Change</strong>: Any change beyond model expectation</li>
+        </ul>
+
+        <h3>Comparison with YOLO</h3>
+        <table>
+            <tr><th>Aspect</th><th>YOLO</th><th>LeWM VoE</th></tr>
+            <tr><td>Detection method</td><td>Visual pattern matching</td><td>Physics violation</td></tr>
+            <tr><td>Needs training classes?</td><td>Yes</td><td>No (self-supervised)</td></tr>
+            <tr><td>Unknown anomalies</td><td>Cannot detect</td><td>Can detect</td></tr>
+            <tr><td>Inference speed</td><td>~10ms</td><td>~9.6ms</td></tr>
+        </table>
+
+        <h3>Workflow</h3>
+        <ol>
+            <li><strong>Record</strong>: Record 5 min of "normal scene" footage (self-supervised, no labels needed)</li>
+            <li><strong>Train</strong>: 30 epochs, ~37 min (Mac M3) or ~25 min (DGX)</li>
+            <li><strong>Detect</strong>: Live feed + Surprise waveform + dynamic threshold + anomaly red border</li>
+        </ol>
+
+        <h3>Performance</h3>
+        <ul>
+            <li>Parameters: 8.7M</li>
+            <li>Inference: 9.6ms/frame (Mac M3 MPS)</li>
+            <li>Max FPS: 104</li>
+            <li>Supports 30fps real-time detection</li>
+        </ul>
+        
+        </div>
+    </div>
+    
+<script>
+    function toggleLang() {
+      document.body.classList.toggle('en');
+      const btn = document.getElementById('langToggle');
+      btn.textContent = document.body.classList.contains('en') ? '中文' : 'EN';
+      localStorage.setItem('lewm_lang', document.body.classList.contains('en') ? 'en' : 'zh');
+    }
+    // Restore language preference
+    if (localStorage.getItem('lewm_lang') === 'en') {
+      document.body.classList.add('en');
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('langToggle');
+        if (btn) btn.textContent = '中文';
+      });
+    }
+    </script>
+</body>
+</html>

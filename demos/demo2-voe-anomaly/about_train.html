@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>訓練管理器</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --accent:#3b82f6; --text:#e2e8f0; --dim:#64748b; --border:#334155; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+a { color:var(--accent); }
+.back { display:inline-block; padding:8px 16px; margin:1rem 2rem; color:var(--dim); text-decoration:none; font-size:0.9rem; }
+.back:hover { color:var(--text); }
+
+    .lang-btn { position:fixed; top:12px; right:16px; z-index:999; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:4px 14px; border-radius:999px; cursor:pointer; font-size:0.8rem; font-weight:600; backdrop-filter:blur(8px); }
+    .lang-btn:hover { background:rgba(255,255,255,0.25); }
+    .lang-zh { display:block; } .lang-en { display:none; }
+    body.en .lang-zh { display:none; } body.en .lang-en { display:block; }
+    
+
+    .about-content { max-width:800px; margin:0 auto; padding:1rem 2rem 3rem; }
+    .about-content h1 { font-size:1.8rem; margin-bottom:1rem; }
+    .about-content h2 { font-size:1.3rem; margin:1.5rem 0 0.8rem; color:var(--accent); }
+    .about-content h3 { font-size:1.05rem; margin:1.2rem 0 0.5rem; }
+    .about-content p { margin-bottom:0.8rem; line-height:1.7; }
+    .about-content ul, .about-content ol { margin:0.5rem 0 1rem 1.5rem; }
+    .about-content li { margin-bottom:0.3rem; line-height:1.6; }
+    .about-content table { width:100%; border-collapse:collapse; margin:0.5rem 0 1rem; }
+    .about-content th, .about-content td { padding:8px 12px; border:1px solid var(--border); text-align:left; font-size:0.9rem; }
+    .about-content th { background:rgba(255,255,255,0.05); }
+    .about-content code { background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85rem; }
+    
+</style>
+</head>
+<body>
+<button class="lang-btn" id="langToggle" onclick="toggleLang()">EN</button>
+<a class="back" href="/">← 返回 <span class="lang-en" style="display:none">← Back</span></a>
+
+    <div class="about-content">
+        <div class="lang-zh"><h1>訓練管理器</h1>
+        <h2>功能說明</h2>
+        <p>一站式完成 LeWM 世界模型的<strong>錄製 → 訓練 → 模型管理</strong>全流程。</p>
+
+        <h3>三步驟流程</h3>
+        <ol>
+            <li><strong>錄製 (Record)</strong>
+                <ul>
+                    <li>輸入攝影機 RTSP URL，可先 Preview 預覽畫面</li>
+                    <li>設定錄製時長（建議 300 秒以上）和幀率（建議 5 fps）</li>
+                    <li>點擊 Start Recording，即時顯示進度條</li>
+                    <li>完成後自動轉為 HDF5 訓練格式</li>
+                </ul>
+            </li>
+            <li><strong>訓練 (Train)</strong>
+                <ul>
+                    <li>選擇已錄製的資料集</li>
+                    <li>設定 Epochs（建議 30）、Batch Size（建議 32）、Learning Rate（建議 0.0003）</li>
+                    <li>即時顯示 Loss 曲線和訓練 Log</li>
+                    <li>訓練時自動啟用 Color Augmentation</li>
+                </ul>
+            </li>
+            <li><strong>模型 (Models)</strong>
+                <ul>
+                    <li>列出所有訓練完成的 checkpoint</li>
+                    <li>顯示 epochs 數和最終 pred_loss</li>
+                    <li>模型可被 Demo 1-4 共用</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>建議參數</h3>
+        <table>
+            <tr><th>參數</th><th>建議值</th><th>說明</th></tr>
+            <tr><td>錄製時長</td><td>300 秒</td><td>至少 50 episodes（每 30 幀一個 episode）</td></tr>
+            <tr><td>FPS</td><td>5</td><td>降低頻寬需求，5fps 足夠捕捉場景變化</td></tr>
+            <tr><td>Epochs</td><td>30</td><td>M3 約 37 分鐘，DGX 約 25 分鐘</td></tr>
+            <tr><td>Batch Size</td><td>32</td><td>M3 建議 32，DGX 可用 128</td></tr>
+        </table>
+        </div>
+        <div class="lang-en"><h1>Training Manager</h1>
+        <h2>Feature Description</h2>
+        <p>One-stop <strong>Record → Train → Model Management</strong> pipeline for LeWM world model.</p>
+
+        <h3>Three-Step Workflow</h3>
+        <ol>
+            <li><strong>Record</strong>
+                <ul>
+                    <li>Enter camera RTSP URL, Preview to check feed</li>
+                    <li>Set duration (recommend 300+ sec) and FPS (recommend 5)</li>
+                    <li>Click Start Recording, real-time progress bar</li>
+                    <li>Auto-converts to HDF5 training format</li>
+                </ul>
+            </li>
+            <li><strong>Train</strong>
+                <ul>
+                    <li>Select recorded dataset</li>
+                    <li>Set Epochs (30), Batch Size (32), Learning Rate (0.0003)</li>
+                    <li>Live loss curve and training log</li>
+                    <li>Color augmentation enabled by default</li>
+                </ul>
+            </li>
+            <li><strong>Models</strong>
+                <ul>
+                    <li>Lists all trained checkpoints</li>
+                    <li>Shows epochs and final pred_loss</li>
+                    <li>Models shared across Demo 1-4</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>Recommended Parameters</h3>
+        <table>
+            <tr><th>Parameter</th><th>Recommended</th><th>Note</th></tr>
+            <tr><td>Duration</td><td>300 sec</td><td>At least 50 episodes (30 frames each)</td></tr>
+            <tr><td>FPS</td><td>5</td><td>Reduces bandwidth, sufficient for scene changes</td></tr>
+            <tr><td>Epochs</td><td>30</td><td>~37 min on M3, ~25 min on DGX</td></tr>
+            <tr><td>Batch Size</td><td>32</td><td>32 for M3, 128 for DGX</td></tr>
+        </table>
+        </div>
+    </div>
+    
+<script>
+    function toggleLang() {
+      document.body.classList.toggle('en');
+      const btn = document.getElementById('langToggle');
+      btn.textContent = document.body.classList.contains('en') ? '中文' : 'EN';
+      localStorage.setItem('lewm_lang', document.body.classList.contains('en') ? 'en' : 'zh');
+    }
+    // Restore language preference
+    if (localStorage.getItem('lewm_lang') === 'en') {
+      document.body.classList.add('en');
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('langToggle');
+        if (btn) btn.textContent = '中文';
+      });
+    }
+    </script>
+</body>
+</html>

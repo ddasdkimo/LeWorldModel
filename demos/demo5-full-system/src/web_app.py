@@ -4,11 +4,20 @@ Demo 5 - 完整系統整合 Dashboard
 
 啟動: python web_app.py → http://localhost:8780
 """
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
 
 app = FastAPI()
+
+
+@app.get("/about")
+async def about_page():
+    about_file = Path(__file__).parent.parent / "about.html"
+    if about_file.exists():
+        return HTMLResponse(about_file.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>About page not found</h1>")
 
 @app.get("/")
 async def index():
@@ -38,7 +47,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .footer{text-align:center;padding:2rem;color:var(--dim);font-size:.85rem}
 .footer a{color:var(--accent)}
 .section-title{max-width:1100px;margin:2rem auto 0;padding:0 2rem;font-size:.9rem;color:var(--dim);text-transform:uppercase;letter-spacing:2px}
-</style>
+.lang-btn{position:fixed;top:12px;right:16px;z-index:999;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 14px;border-radius:999px;cursor:pointer;font-size:.8rem;font-weight:600;backdrop-filter:blur(8px)}.lang-btn:hover{background:rgba(255,255,255,.25)}.about-link{position:fixed;top:12px;right:70px;z-index:999;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#94a3b8;padding:4px 14px;border-radius:999px;cursor:pointer;font-size:.8rem;text-decoration:none}.about-link:hover{color:#fff;background:rgba(255,255,255,.2)}.lang-zh{display:block}.lang-en{display:none}body.en .lang-zh{display:none}body.en .lang-en{display:block}</style>
 </head>
 <body>
 <div class="hero">
@@ -117,7 +126,7 @@ cd demos/demo5-full-system && python3 src/web_app.py &    # :8780</pre>
   <p>LeWorldModel Industrial Safety Demo — 2026-03-26</p>
   <p><a href="https://github.com/ddasdkimo/LeWorldModel">GitHub: ddasdkimo/LeWorldModel</a></p>
 </div>
-</body>
+<script>function toggleLang(){document.body.classList.toggle('en');var b=document.getElementById('langToggle');b.textContent=document.body.classList.contains('en')?'中文':'EN';localStorage.setItem('lewm_lang',document.body.classList.contains('en')?'en':'zh')}if(localStorage.getItem('lewm_lang')==='en'){document.body.classList.add('en');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('langToggle');if(b)b.textContent='中文';})}</script></body>
 </html>
 """)
 

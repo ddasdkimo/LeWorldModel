@@ -303,6 +303,14 @@ app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
+
+@app.get("/about")
+async def about_page():
+    about_file = Path(__file__).parent.parent / "about.html"
+    if about_file.exists():
+        return HTMLResponse(about_file.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>About page not found</h1>")
+
 @app.get("/")
 async def index():
     return HTMLResponse(FRONTEND_HTML)
@@ -473,7 +481,7 @@ FRONTEND_HTML = """
   .chart-box canvas { width: 100%; height: 100%; }
 
   .log { background: #000; color: #86efac; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-top: 0.5rem; white-space: pre-wrap; }
-</style>
+.lang-btn{position:fixed;top:12px;right:16px;z-index:999;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 14px;border-radius:999px;cursor:pointer;font-size:.8rem;font-weight:600;backdrop-filter:blur(8px)}.lang-btn:hover{background:rgba(255,255,255,.25)}.about-link{position:fixed;top:12px;right:70px;z-index:999;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#94a3b8;padding:4px 14px;border-radius:999px;cursor:pointer;font-size:.8rem;text-decoration:none}.about-link:hover{color:#fff;background:rgba(255,255,255,.2)}.lang-zh{display:block}.lang-en{display:none}body.en .lang-zh{display:none}body.en .lang-en{display:block}</style>
 </head>
 <body>
 
@@ -788,6 +796,7 @@ async function stopTrain() {
 // Auto-refresh
 setInterval(refreshStatus, 2000);
 refreshStatus();
+function toggleLang(){document.body.classList.toggle('en');var b=document.getElementById('langToggle');b.textContent=document.body.classList.contains('en')?'中文':'EN';localStorage.setItem('lewm_lang',document.body.classList.contains('en')?'en':'zh')}if(localStorage.getItem('lewm_lang')==='en'){document.body.classList.add('en');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('langToggle');if(b)b.textContent='中文';})}
 </script>
 </body>
 </html>

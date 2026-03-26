@@ -95,6 +95,14 @@ app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
+
+@app.get("/about")
+async def about_page():
+    about_file = Path(__file__).parent.parent / "about.html"
+    if about_file.exists():
+        return HTMLResponse(about_file.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>About page not found</h1>")
+
 @app.get("/")
 async def index():
     return HTMLResponse(FRONTEND)
@@ -462,7 +470,7 @@ FRONTEND = """
   .list-item { padding:8px; border-bottom:1px solid var(--border); font-size:0.85rem; display:flex; justify-content:space-between; align-items:center; }
   .log { background:#000; color:#86efac; padding:0.8rem; border-radius:6px; font-family:monospace; font-size:0.8rem; max-height:180px; overflow-y:auto; margin-top:0.5rem; white-space:pre-wrap; }
   .preview-img { max-width:100%; border-radius:8px; margin-top:0.5rem; }
-</style>
+.lang-btn{position:fixed;top:12px;right:16px;z-index:999;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 14px;border-radius:999px;cursor:pointer;font-size:.8rem;font-weight:600;backdrop-filter:blur(8px)}.lang-btn:hover{background:rgba(255,255,255,.25)}.about-link{position:fixed;top:12px;right:70px;z-index:999;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#94a3b8;padding:4px 14px;border-radius:999px;cursor:pointer;font-size:.8rem;text-decoration:none}.about-link:hover{color:#fff;background:rgba(255,255,255,.2)}.lang-zh{display:block}.lang-en{display:none}body.en .lang-zh{display:none}body.en .lang-en{display:block}</style>
 </head>
 <body>
 
@@ -611,6 +619,7 @@ function startDet(){
 function stopDet(){if(ws){ws.send(JSON.stringify({action:'stop'}));ws.close();}document.getElementById('bDet').style.display='inline-block';document.getElementById('bDetS').style.display='none';}
 function drawChart(h){const c=document.getElementById('sChart');const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=c.offsetHeight*2;ctx.clearRect(0,0,W,H);const mx=Math.max(...h)*1.3||1;const p=10;ctx.beginPath();ctx.lineWidth=2;ctx.strokeStyle='#3b82f6';h.forEach((v,i)=>{const x=p+(i/(h.length-1||1))*(W-2*p);const y=p+(H-2*p)-(v/mx)*(H-2*p);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
 setInterval(refresh,2000);refresh();
+function toggleLang(){document.body.classList.toggle('en');var b=document.getElementById('langToggle');b.textContent=document.body.classList.contains('en')?'中文':'EN';localStorage.setItem('lewm_lang',document.body.classList.contains('en')?'en':'zh')}if(localStorage.getItem('lewm_lang')==='en'){document.body.classList.add('en');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('langToggle');if(b)b.textContent='中文';})}
 </script>
 </body>
 </html>

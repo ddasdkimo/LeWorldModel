@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo 3：YOLO + LeWM 雙重視野</title>
+<style>
+:root { --bg:#0f172a; --card:#1e293b; --accent:#3b82f6; --text:#e2e8f0; --dim:#64748b; --border:#334155; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+a { color:var(--accent); }
+.back { display:inline-block; padding:8px 16px; margin:1rem 2rem; color:var(--dim); text-decoration:none; font-size:0.9rem; }
+.back:hover { color:var(--text); }
+
+    .lang-btn { position:fixed; top:12px; right:16px; z-index:999; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:4px 14px; border-radius:999px; cursor:pointer; font-size:0.8rem; font-weight:600; backdrop-filter:blur(8px); }
+    .lang-btn:hover { background:rgba(255,255,255,0.25); }
+    .lang-zh { display:block; } .lang-en { display:none; }
+    body.en .lang-zh { display:none; } body.en .lang-en { display:block; }
+    
+
+    .about-content { max-width:800px; margin:0 auto; padding:1rem 2rem 3rem; }
+    .about-content h1 { font-size:1.8rem; margin-bottom:1rem; }
+    .about-content h2 { font-size:1.3rem; margin:1.5rem 0 0.8rem; color:var(--accent); }
+    .about-content h3 { font-size:1.05rem; margin:1.2rem 0 0.5rem; }
+    .about-content p { margin-bottom:0.8rem; line-height:1.7; }
+    .about-content ul, .about-content ol { margin:0.5rem 0 1rem 1.5rem; }
+    .about-content li { margin-bottom:0.3rem; line-height:1.6; }
+    .about-content table { width:100%; border-collapse:collapse; margin:0.5rem 0 1rem; }
+    .about-content th, .about-content td { padding:8px 12px; border:1px solid var(--border); text-align:left; font-size:0.9rem; }
+    .about-content th { background:rgba(255,255,255,0.05); }
+    .about-content code { background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:0.85rem; }
+    
+</style>
+</head>
+<body>
+<button class="lang-btn" id="langToggle" onclick="toggleLang()">EN</button>
+<a class="back" href="/">← 返回 <span class="lang-en" style="display:none">← Back</span></a>
+
+    <div class="about-content">
+        <div class="lang-zh">
+            <h1>Demo 3：YOLO + LeWM 雙重視野</h1>
+            
+        <h2>功能說明</h2>
+        <p>同一畫面同時展示 <strong>YOLO 物件偵測</strong>和 <strong>LeWM 物理理解</strong>的結果，直觀呈現兩者如何互補。</p>
+
+        <h3>左側：YOLO 偵測</h3>
+        <ul>
+            <li>即時物件偵測（人、車、物品等）</li>
+            <li>每個物件的類別名稱和信心度</li>
+            <li>Bounding box 標記</li>
+        </ul>
+
+        <h3>右側：LeWM 物理理解</h3>
+        <ul>
+            <li>Surprise 數值（物理異常指標）</li>
+            <li>Surprise 能量條（視覺化）</li>
+            <li>異常偵測狀態（紅框 = 異常）</li>
+        </ul>
+
+        <h3>互補效果</h3>
+        <ul>
+            <li><strong>YOLO 強、LeWM 弱</strong>：已知類別的物件識別（如 PPE 合規偵測）</li>
+            <li><strong>LeWM 強、YOLO 弱</strong>：未知異常、物理違規、預測性偵測</li>
+            <li><strong>結合優勢</strong>：YOLO 偵測到人 + LeWM 預測異常 = 更精確的安全預警</li>
+        </ul>
+
+        <h3>注意事項</h3>
+        <p>此 Demo 複用 Demo 2 的模型。請先在 Demo 2 中完成訓練，再在此載入模型使用。</p>
+        
+        </div>
+        <div class="lang-en">
+            <h1>Demo 3: Dual Vision (YOLO + LeWM)</h1>
+            
+        <h2>Feature Description</h2>
+        <p>Shows <strong>YOLO object detection</strong> and <strong>LeWM physics understanding</strong> side-by-side to demonstrate how they complement each other.</p>
+
+        <h3>Left Panel: YOLO Detection</h3>
+        <ul>
+            <li>Real-time object detection (person, car, items, etc.)</li>
+            <li>Class name and confidence for each object</li>
+            <li>Bounding box overlay</li>
+        </ul>
+
+        <h3>Right Panel: LeWM Physics</h3>
+        <ul>
+            <li>Surprise value (physics anomaly indicator)</li>
+            <li>Surprise energy bar (visualization)</li>
+            <li>Anomaly status (red border = anomaly)</li>
+        </ul>
+
+        <h3>Complementary Effects</h3>
+        <ul>
+            <li><strong>YOLO strong, LeWM weak</strong>: Known object classification (e.g., PPE compliance)</li>
+            <li><strong>LeWM strong, YOLO weak</strong>: Unknown anomalies, physics violations, predictive detection</li>
+            <li><strong>Combined</strong>: YOLO detects person + LeWM predicts anomaly = better safety alerts</li>
+        </ul>
+
+        <h3>Note</h3>
+        <p>This demo reuses Demo 2's model. Please complete training in Demo 2 first, then load the model here.</p>
+        
+        </div>
+    </div>
+    
+<script>
+    function toggleLang() {
+      document.body.classList.toggle('en');
+      const btn = document.getElementById('langToggle');
+      btn.textContent = document.body.classList.contains('en') ? '中文' : 'EN';
+      localStorage.setItem('lewm_lang', document.body.classList.contains('en') ? 'en' : 'zh');
+    }
+    // Restore language preference
+    if (localStorage.getItem('lewm_lang') === 'en') {
+      document.body.classList.add('en');
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('langToggle');
+        if (btn) btn.textContent = '中文';
+      });
+    }
+    </script>
+</body>
+</html>
