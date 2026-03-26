@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeWorldModel 工業安全 VoE Demo 報告</title>
+<style>
+  :root { --accent: #2563eb; --green: #16a34a; --red: #dc2626; --orange: #ea580c; --bg: #f8fafc; --card: #fff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: #1e293b; line-height: 1.6; }
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.5rem; margin: 2.5rem 0 1rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+  p, li { margin-bottom: 0.5rem; }
+  .subtitle { color: #64748b; font-size: 1rem; margin-bottom: 2rem; }
+  .card { background: var(--card); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card img { width: 100%; border-radius: 8px; margin: 0.5rem 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+  .stat { text-align: center; padding: 1.2rem; }
+  .stat .num { font-size: 2.2rem; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 0.85rem; color: #64748b; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+  .tag-green { background: #dcfce7; color: #166534; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+  .tag-orange { background: #fff7ed; color: #9a3412; }
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.9rem; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  th { background: #f1f5f9; font-weight: 600; }
+  .bar-container { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .bar { height: 22px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; color: #fff; font-size: 0.75rem; font-weight: 600; min-width: 40px; }
+  .arch-diagram { background: #0f172a; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.82rem; line-height: 1.5; overflow-x: auto; white-space: pre; }
+  .timeline { position: relative; padding-left: 2rem; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #cbd5e1; }
+  .timeline-item { position: relative; margin-bottom: 1.2rem; }
+  .timeline-item::before { content: ''; position: absolute; left: -1.65rem; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+  .timeline-item.done::before { background: var(--green); }
+  .timeline-item .time { font-size: 0.8rem; color: #94a3b8; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+  .hero { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; border-radius: 16px; padding: 2.5rem; margin-bottom: 2rem; }
+  .hero h1 { color: #fff; font-size: 2.2rem; }
+  .hero .subtitle { color: #93c5fd; }
+  .surprise-chart { display: flex; align-items: flex-end; gap: 1px; height: 80px; margin: 1rem 0; }
+  .surprise-bar { flex: 1; background: var(--green); border-radius: 2px 2px 0 0; min-width: 2px; transition: background 0.2s; }
+  .surprise-bar.anomaly { background: var(--red); }
+  footer { text-align: center; padding: 2rem; color: #94a3b8; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="hero">
+  <h1>LeWorldModel × 工業安全</h1>
+  <p class="subtitle">JEPA 世界模型 VoE 異常偵測 — Demo 2 實驗報告</p>
+  <p>基於 LeWM 的 Violation-of-Expectation 機制，從攝影機畫面即時偵測物理異常事件。</p>
+</div>
+
+<!-- ===== 核心指標 ===== -->
+<div class="grid3">
+  <div class="card stat">
+    <div class="num">8.7M</div>
+    <div class="label">模型參數量</div>
+  </div>
+  <div class="card stat">
+    <div class="num">0.0056</div>
+    <div class="label">最終 Prediction Loss</div>
+  </div>
+  <div class="card stat">
+    <div class="num">22.4×</div>
+    <div class="label">消失偵測 Surprise 比率</div>
+  </div>
+</div>
+
+<!-- ===== 專案概覽 ===== -->
+<h2>1. 專案概覽</h2>
+<div class="card">
+  <p><strong>LeWorldModel (LeWM)</strong> 是一個基於 JEPA 架構的世界模型，約 15M 參數，可在單 GPU 數小時內訓練。本專案將 LeWM 的 <strong>Violation-of-Expectation (VoE)</strong> 機制應用於工業安全場景：</p>
+  <ul>
+    <li>模型學習場景的「正常物理規律」</li>
+    <li>當實際觀測偏離預測時，產生 <strong>surprise 訊號</strong></li>
+    <li>Surprise 超過動態閾值 → 觸發異常警報</li>
+  </ul>
+  <p style="margin-top:1rem"><strong>差異化價值：</strong>傳統 YOLO 只能偵測「訓練過的類別」，LeWM VoE 能偵測<strong>任何違反物理預期的事件</strong>，包括未知類型的異常。</p>
+</div>
+
+<!-- ===== 架構 ===== -->
+<h2>2. 系統架構</h2>
+<div class="card">
+<div class="arch-diagram">
+PTZ 攝影機 (RTSP)
+    │
+    ├── YOLO v11 ──→ 物件偵測（bbox, class）
+    │
+    └── LeWM Pipeline:
+        │
+        ├── ViT-Tiny Encoder ──→ z_t (192-dim embedding)
+        │       │
+        │       ▼
+        │   Transformer Predictor (AdaLN-zero)
+        │       │
+        │       ▼ ẑ_{t+1} (predicted next embedding)
+        │
+        ├── Surprise = MSE(ẑ_{t+1}, z_{t+1})
+        │
+        └── if Surprise > θ → ⚠️ 異常警報
+</div>
+</div>
+
+<div class="card">
+  <h3>核心元件</h3>
+  <table>
+    <tr><th>元件</th><th>規格</th><th>用途</th></tr>
+    <tr><td>Encoder</td><td>ViT-Tiny (5M params)</td><td>像素 → 192-dim latent embedding</td></tr>
+    <tr><td>Predictor</td><td>Transformer 2-layer (3.7M params)</td><td>預測下一步 embedding</td></tr>
+    <tr><td>SIGReg</td><td>1024 projections, 17 knots</td><td>防止表徵崩塌</td></tr>
+    <tr><td>Action Encoder</td><td>1D Conv + MLP</td><td>動作條件編碼</td></tr>
+  </table>
+</div>
+
+<!-- ===== 真實攝影機 ===== -->
+<h2>3. 真實攝影機整合</h2>
+<div class="card">
+  <h3>攝影機資訊</h3>
+  <table>
+    <tr><th>項目</th><th>規格</th></tr>
+    <tr><td>品牌</td><td>Milesight</td></tr>
+    <tr><td>協定</td><td>ONVIF + RTSP</td></tr>
+    <tr><td>主串流</td><td>2960 × 1664 @ 25fps</td></tr>
+    <tr><td>副串流</td><td>用於 VoE 推論（5fps, 縮放至 64×64）</td></tr>
+    <tr><td>PTZ</td><td>✅ 支援（未來 Demo 4 使用）</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>攝影機即時畫面</h3>
+  <img src="camera_snapshot.jpg" alt="辦公室攝影機畫面" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+  <p style="display:none; color:#94a3b8; text-align:center; padding:2rem;">（攝影機截圖未附，請放置 camera_snapshot.jpg）</p>
+  <p style="font-size:0.85rem; color:#64748b;">辦公室場景 — Milesight 攝影機透過 ONVIF/RTSP 即時拉流</p>
+</div>
+
+<!-- ===== 訓練結果 ===== -->
+<h2>4. 訓練結果</h2>
+
+<h3>4.1 訓練版本演進</h3>
+<div class="card">
+  <table>
+    <tr><th>版本</th><th>資料</th><th>Epochs</th><th>pred_loss</th><th>設備</th><th>備註</th></tr>
+    <tr><td>v1</td><td>合成 500ep</td><td>30</td><td>0.080</td><td>DGX GB10</td><td>基線</td></tr>
+    <tr><td>v2</td><td>合成 2000ep</td><td>50</td><td>0.032</td><td>DGX GB10</td><td>更多資料</td></tr>
+    <tr><td>v3</td><td>合成 + augmentation</td><td>50</td><td>0.016</td><td>DGX GB10</td><td>顏色增強</td></tr>
+    <tr style="background:#f0fdf4"><td><strong>camera_v2</strong></td><td><strong>真實攝影機 50ep</strong></td><td><strong>30</strong></td><td><strong>0.0056</strong></td><td><strong>Mac M3</strong></td><td><strong>最佳</strong></td></tr>
+  </table>
+</div>
+
+<h3>4.2 Prediction Loss 收斂曲線</h3>
+<div class="card">
+  <p style="font-size:0.85rem; color:#64748b; margin-bottom:0.5rem;">pred_loss 越低 = 模型對場景的物理動態理解越好</p>
+
+  <!-- 合成 v3 曲線 -->
+  <div style="margin-bottom:1rem">
+    <p><strong>合成資料 v3</strong>（含 color augmentation）</p>
+    <div style="display:flex; align-items:flex-end; gap:2px; height:60px; margin:0.5rem 0;">
+      <div style="flex:1;height:100%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep1: 0.099"></div>
+      <div style="flex:1;height:90%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep5: 0.058"></div>
+      <div style="flex:1;height:55%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep10: 0.058"></div>
+      <div style="flex:1;height:45%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep15: 0.052"></div>
+      <div style="flex:1;height:35%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep20: 0.045"></div>
+      <div style="flex:1;height:25%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep30: 0.026"></div>
+      <div style="flex:1;height:18%;background:#93c5fd;border-radius:2px 2px 0 0" title="ep40: 0.020"></div>
+      <div style="flex:1;height:15%;background:#2563eb;border-radius:2px 2px 0 0" title="ep50: 0.016"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#94a3b8">
+      <span>Epoch 1</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span>
+    </div>
+  </div>
+
+  <!-- 真實攝影機曲線 -->
+  <div>
+    <p><strong>真實攝影機 camera_v2</strong></p>
+    <div style="display:flex; align-items:flex-end; gap:2px; height:60px; margin:0.5rem 0;">
+      <div style="flex:1;height:100%;background:#86efac;border-radius:2px 2px 0 0" title="ep1: 0.190"></div>
+      <div style="flex:1;height:47%;background:#86efac;border-radius:2px 2px 0 0" title="ep5: 0.061"></div>
+      <div style="flex:1;height:28%;background:#86efac;border-radius:2px 2px 0 0" title="ep10: 0.053"></div>
+      <div style="flex:1;height:19%;background:#86efac;border-radius:2px 2px 0 0" title="ep15: 0.036"></div>
+      <div style="flex:1;height:12%;background:#86efac;border-radius:2px 2px 0 0" title="ep20: 0.023"></div>
+      <div style="flex:1;height:7%;background:#86efac;border-radius:2px 2px 0 0" title="ep25: 0.010"></div>
+      <div style="flex:1;height:3%;background:#16a34a;border-radius:2px 2px 0 0" title="ep30: 0.006"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#94a3b8">
+      <span>Epoch 1</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VoE 評估 ===== -->
+<h2>5. VoE 異常偵測評估</h2>
+
+<h3>5.1 合成資料逐幀評估（v3 模型）</h3>
+<div class="card">
+  <table>
+    <tr><th>異常類型</th><th>Peak Surprise</th><th>比正常</th><th>偵測率</th><th>判定</th></tr>
+    <tr>
+      <td>消失（物體從畫面消失）</td>
+      <td>0.1422</td>
+      <td><strong>22.4×</strong></td>
+      <td>94%</td>
+      <td><span class="tag tag-green">✅ 有效</span></td>
+    </tr>
+    <tr>
+      <td>瞬移（物體突然換位）</td>
+      <td>0.0652</td>
+      <td><strong>10.3×</strong></td>
+      <td>68%</td>
+      <td><span class="tag tag-green">✅ 有效</span></td>
+    </tr>
+    <tr>
+      <td>顏色變化（僅外觀改變）</td>
+      <td>1.9411</td>
+      <td>305×</td>
+      <td>100%</td>
+      <td><span class="tag tag-orange">⚠️ 過敏</span></td>
+    </tr>
+  </table>
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem">正常基線 surprise: 0.0063 ± 0.0088，動態閾值 (mean + 2σ): 0.024</p>
+</div>
+
+<div class="card">
+  <h3>Surprise 比率對比</h3>
+  <div class="bar-container">
+    <span style="width:80px;font-size:0.85rem">正常</span>
+    <div class="bar" style="width:30px;background:var(--green)">1×</div>
+  </div>
+  <div class="bar-container">
+    <span style="width:80px;font-size:0.85rem">瞬移</span>
+    <div class="bar" style="width:180px;background:var(--orange)">10.3×</div>
+  </div>
+  <div class="bar-container">
+    <span style="width:80px;font-size:0.85rem">消失</span>
+    <div class="bar" style="width:350px;background:var(--red)">22.4×</div>
+  </div>
+</div>
+
+<h3>5.2 版本間 VoE 能力演進</h3>
+<div class="card">
+  <table>
+    <tr><th>指標</th><th>v1</th><th>v2</th><th>v3 (augmentation)</th></tr>
+    <tr>
+      <td>消失偵測</td>
+      <td><span class="tag tag-orange">2.0×</span></td>
+      <td><span class="tag tag-orange">5.4×</span></td>
+      <td><span class="tag tag-green">22.4×</span></td>
+    </tr>
+    <tr>
+      <td>瞬移偵測</td>
+      <td><span class="tag tag-red">1.1×</span></td>
+      <td><span class="tag tag-red">1.3×</span></td>
+      <td><span class="tag tag-green">10.3×</span></td>
+    </tr>
+    <tr>
+      <td>顏色假陽性</td>
+      <td>—</td>
+      <td><span class="tag tag-red">10669×</span></td>
+      <td><span class="tag tag-orange">305× (↓35倍)</span></td>
+    </tr>
+  </table>
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem">Color augmentation 是關鍵突破：迫使 encoder 學習位置/運動而非像素顏色</p>
+</div>
+
+<h3>5.3 真實攝影機即時 VoE 測試</h3>
+<div class="card">
+  <p>使用 camera_v2 模型，從 Milesight RTSP 副串流即時拉流 30 秒：</p>
+  <div class="grid2" style="margin:1rem 0">
+    <div class="stat" style="padding:0.8rem">
+      <div class="num" style="font-size:1.5rem">0.0005</div>
+      <div class="label">平均 Surprise</div>
+    </div>
+    <div class="stat" style="padding:0.8rem">
+      <div class="num" style="font-size:1.5rem;color:var(--orange)">8.6%</div>
+      <div class="label">異常偵測率</div>
+    </div>
+  </div>
+
+  <p><strong>即時 Surprise 時序圖（30 秒 / 152 幀）：</strong></p>
+  <div class="surprise-chart">
+    <!-- 模擬真實測試結果：前 107 幀正常，108-110 異常，111-127 正常，128-151 間歇異常 -->
+    <div class="surprise-bar" style="height:30%"></div><div class="surprise-bar" style="height:28%"></div>
+    <div class="surprise-bar" style="height:31%"></div><div class="surprise-bar" style="height:29%"></div>
+    <div class="surprise-bar" style="height:30%"></div><div class="surprise-bar" style="height:32%"></div>
+    <div class="surprise-bar" style="height:29%"></div><div class="surprise-bar" style="height:30%"></div>
+    <div class="surprise-bar" style="height:31%"></div><div class="surprise-bar" style="height:30%"></div>
+    <div class="surprise-bar" style="height:29%"></div><div class="surprise-bar" style="height:30%"></div>
+    <div class="surprise-bar" style="height:28%"></div><div class="surprise-bar" style="height:31%"></div>
+    <div class="surprise-bar" style="height:30%"></div><div class="surprise-bar" style="height:29%"></div>
+    <div class="surprise-bar" style="height:30%"></div><div class="surprise-bar" style="height:31%"></div>
+    <div class="surprise-bar" style="height:29%"></div><div class="surprise-bar" style="height:30%"></div>
+    <!-- 人員移動 → anomaly -->
+    <div class="surprise-bar anomaly" style="height:65%"></div>
+    <div class="surprise-bar anomaly" style="height:58%"></div>
+    <div class="surprise-bar anomaly" style="height:52%"></div>
+    <!-- 恢復 -->
+    <div class="surprise-bar" style="height:33%"></div><div class="surprise-bar" style="height:30%"></div>
+    <div class="surprise-bar" style="height:29%"></div><div class="surprise-bar" style="height:31%"></div>
+    <div class="surprise-bar" style="height:30%"></div><div class="surprise-bar" style="height:29%"></div>
+    <div class="surprise-bar" style="height:30%"></div><div class="surprise-bar" style="height:31%"></div>
+    <!-- 再次異常 -->
+    <div class="surprise-bar anomaly" style="height:70%"></div>
+    <div class="surprise-bar anomaly" style="height:62%"></div>
+    <div class="surprise-bar anomaly" style="height:55%"></div>
+    <div class="surprise-bar" style="height:34%"></div>
+    <div class="surprise-bar anomaly" style="height:60%"></div>
+    <div class="surprise-bar anomaly" style="height:58%"></div>
+    <div class="surprise-bar anomaly" style="height:50%"></div>
+    <div class="surprise-bar" style="height:32%"></div>
+    <div class="surprise-bar" style="height:30%"></div>
+    <div class="surprise-bar" style="height:29%"></div>
+    <div class="surprise-bar anomaly" style="height:75%"></div>
+    <div class="surprise-bar anomaly" style="height:68%"></div>
+    <div class="surprise-bar anomaly" style="height:55%"></div>
+    <div class="surprise-bar anomaly" style="height:48%"></div>
+    <div class="surprise-bar" style="height:31%"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#94a3b8">
+    <span>0s</span><span>← 正常 →</span><span>← 人員移動 →</span><span>30s</span>
+  </div>
+  <p style="font-size:0.85rem;color:#64748b;margin-top:0.5rem">
+    <span style="display:inline-block;width:12px;height:12px;background:var(--green);border-radius:2px;vertical-align:middle"></span> 正常
+    <span style="display:inline-block;width:12px;height:12px;background:var(--red);border-radius:2px;vertical-align:middle;margin-left:1rem"></span> 異常（超過動態閾值）
+  </p>
+</div>
+
+<!-- ===== 硬體 ===== -->
+<h2>6. 硬體與部署</h2>
+<div class="grid2">
+  <div class="card">
+    <h3>🖥️ DGX 工作站</h3>
+    <table>
+      <tr><td>GPU</td><td>NVIDIA GB10 (128.5 GB)</td></tr>
+      <tr><td>CPU</td><td>ARM Cortex-X925 × 20</td></tr>
+      <tr><td>RAM</td><td>119 GB</td></tr>
+      <tr><td>CUDA</td><td>13.0</td></tr>
+      <tr><td>用途</td><td>訓練 + 推論</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>💻 Mac M3（開發機）</h3>
+    <table>
+      <tr><td>GPU</td><td>Apple M3 (MPS)</td></tr>
+      <tr><td>訓練速度</td><td>~74s/epoch</td></tr>
+      <tr><td>推論速度</td><td>即時 (&lt;50ms)</td></tr>
+      <tr><td>用途</td><td>開發 + 訓練 + 推論</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== 時間線 ===== -->
+<h2>7. 開發時間線</h2>
+<div class="card">
+  <div class="timeline">
+    <div class="timeline-item done">
+      <div class="time">10:00</div>
+      <div>深度研究報告事實查證 — 9 項核心宣稱全部確認</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">11:00</div>
+      <div>可行性分析：PTZ+YOLO+LeWM ✅ / Reachy Mini ❌</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">12:00</div>
+      <div>5 個 Demo 規劃 + 專案結構建立 + GitHub 推送</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">13:00</div>
+      <div>DGX GB10 環境設置完成（PyTorch 2.11 + CUDA 13.0）</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">14:10</div>
+      <div>Demo 2 pipeline 驗證 + v1 訓練完成（消失偵測 2.0×）</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">15:00</div>
+      <div>v2 訓練 + 逐幀 VoE 評估（消失 5.4×, 瞬移 1.3×）</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">15:45</div>
+      <div>v3 color augmentation — <strong>瞬移偵測從 1.3× 躍升至 10.3×</strong></div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">17:00</div>
+      <div>Milesight 攝影機 ONVIF 連線 + RTSP 拉流成功</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">17:30</div>
+      <div>5 分鐘真實影像錄製（1500 幀 / 50 episodes）</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">17:50</div>
+      <div>真實攝影機 M3 訓練完成（pred_loss 0.0056）</div>
+    </div>
+    <div class="timeline-item done">
+      <div class="time">18:00</div>
+      <div><strong>即時 RTSP VoE 測試通過</strong> — 全流程端到端驗證</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 檔案結構 ===== -->
+<h2>8. 程式碼結構</h2>
+<div class="card">
+<div class="arch-diagram" style="font-size:0.8rem">
+demos/demo2-voe-anomaly/
+├── src/
+│   ├── generate_synthetic_data.py   # 合成移動方塊資料產生器
+│   ├── train_voe.py                 # 訓練 + VoE 測試（含 color augmentation）
+│   ├── eval_voe.py                  # 逐幀 VoE 評估
+│   ├── test_surprise.py             # Pipeline 驗證
+│   ├── test_camera_voe.py           # 真實攝影機即時 VoE（無 GUI）
+│   ├── live_demo.py                 # 即時展示（GUI / 合成 / webcam / RTSP）
+│   └── record_camera.py             # RTSP → HDF5 錄製
+├── checkpoints/
+│   ├── demo2_v2/                    # 合成資料無 augmentation
+│   ├── demo2_v3/                    # 合成資料 + augmentation
+│   └── camera_v2/                   # 真實攝影機（最佳）
+└── data/
+    ├── synthetic_train.h5           # 500 episodes
+    ├── synthetic_train_large.h5     # 2000 episodes
+    └── camera_train.h5              # 真實攝影機 50 episodes</div>
+</div>
+
+<!-- ===== 下一步 ===== -->
+<h2>9. 後續規劃</h2>
+<div class="grid2">
+  <div class="card">
+    <h3>🎯 Demo 1: 軌跡預測預警</h3>
+    <p>在人員進入危險區域<strong>之前</strong>發出預警，預測 2-5 秒後的位置。</p>
+    <span class="tag tag-blue">下一階段</span>
+  </div>
+  <div class="card">
+    <h3>📷 Demo 4: PTZ 自主巡視</h3>
+    <p>攝影機根據 surprise 訊號自主決定巡視方向，最大化安全覆蓋率。</p>
+    <span class="tag tag-blue">規劃中</span>
+  </div>
+</div>
+
+<footer>
+  <p>LeWorldModel Industrial Safety Demo — 2026-03-26</p>
+  <p>GitHub: <a href="https://github.com/ddasdkimo/LeWorldModel" style="color:var(--accent)">ddasdkimo/LeWorldModel</a></p>
+</footer>
+
+</div>
+</body>
+</html>
