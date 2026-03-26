@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data & Models (too large for git)
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.onnx
+*.trt
+*.engine
+data/raw/
+data/processed/
+checkpoints/
+weights/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+wandb/
+runs/
+lightning_logs/
+
+# Secrets
+.env
+*.key
+credentials.*
