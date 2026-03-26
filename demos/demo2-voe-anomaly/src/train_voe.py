@@ -29,9 +29,10 @@ from jepa import JEPA
 class SyntheticH5Dataset(Dataset):
     """從 HDF5 載入合成資料，產生固定長度的 window"""
 
-    def __init__(self, h5_path: str, window_size: int = 8):
+    def __init__(self, h5_path: str, window_size: int = 8, augment: bool = True):
         self.h5_path = h5_path
         self.window_size = window_size
+        self.augment = augment
 
         with h5py.File(h5_path, "r") as f:
             self.pixels = f["pixels"][:]       # (N, C, H, W) uint8
@@ -56,8 +57,19 @@ class SyntheticH5Dataset(Dataset):
         pixels = self.pixels[start:end].astype(np.float32) / 255.0  # (T, C, H, W)
         actions = self.actions[start:end]  # (T, 2)
 
+        # Color augmentation: 對整個 window 施加相同的 jitter（保持時序一致性）
+        if self.augment:
+            # brightness
+            pixels = pixels + np.random.uniform(-0.3, 0.3)
+            # contrast
+            pixels = pixels * np.random.uniform(0.7, 1.3)
+            # hue-like shift per channel
+            for c in range(3):
+                pixels[:, c] += np.random.uniform(-0.2, 0.2)
+            pixels = np.clip(pixels, 0, 1)
+
         return {
-            "pixels": torch.from_numpy(pixels),
+            "pixels": torch.from_numpy(pixels.copy()),
             "action": torch.from_numpy(actions),
         }
 
