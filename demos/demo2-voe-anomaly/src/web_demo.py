@@ -97,7 +97,13 @@ class SurpriseEngine:
             info_ctx = self.model.encode({"pixels": ctx, "action": actions})
             pred = self.model.predict(info_ctx["emb"], info_ctx["act_emb"])
             info_nxt = self.model.encode({"pixels": nxt, "action": actions})
-            surprise = (pred - info_nxt["emb"]).pow(2).mean().item()
+
+            # Use last timestep only (more sensitive to current changes)
+            diff = (pred[:, -1] - info_nxt["emb"][:, -1]).pow(2)
+            # Combine mean + max for better anomaly sensitivity
+            surprise_mean = diff.mean().item()
+            surprise_max = diff.max().item()
+            surprise = surprise_mean + 0.1 * surprise_max  # weighted combination
 
         self.surprise_history.append(surprise)
         return surprise
@@ -230,13 +236,13 @@ def _capture_and_infer(rtsp_url):
 
         msg = {
             "frame": b64,
-            "surprise": surprise,
-            "threshold": threshold,
-            "is_anomaly": is_anomaly,
+            "surprise": float(surprise) if surprise is not None else None,
+            "threshold": float(threshold) if threshold is not None else None,
+            "is_anomaly": bool(is_anomaly),
             "infer_ms": round(infer_ms, 1),
-            "frame_count": ENGINE.frame_count,
-            "history": list(ENGINE.surprise_history)[-200:],
-            "stats": ENGINE.get_stats(),
+            "frame_count": int(ENGINE.frame_count),
+            "history": [float(x) for x in list(ENGINE.surprise_history)[-200:]],
+            "stats": {k: float(v) for k, v in ENGINE.get_stats().items()},
         }
 
         # Drop old frames if queue full
