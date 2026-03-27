@@ -177,6 +177,7 @@ async def index():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    loop = asyncio.get_event_loop()
 
     try:
         # Wait for start command
@@ -189,6 +190,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_json({"status": "connecting", "rtsp": rtsp_url})
 
         cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not cap.isOpened():
             await websocket.send_json({"error": f"Cannot connect to {rtsp_url}"})
             return
@@ -198,7 +200,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
         frame_skip = 0
         while True:
-            ret, frame = cap.read()
+            # Run blocking cap.read() in thread pool to avoid blocking event loop
+            ret, frame = await loop.run_in_executor(None, cap.read)
             if not ret:
                 await websocket.send_json({"error": "Stream lost"})
                 break
