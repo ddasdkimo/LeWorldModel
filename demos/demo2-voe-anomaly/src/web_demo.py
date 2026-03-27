@@ -149,7 +149,9 @@ def init_model():
     else:
         DEVICE = "cpu"
 
-    ckpt = SCRIPT_DIR / "checkpoints" / "camera_v2" / "best_model.pt"
+    ckpt = SCRIPT_DIR / "checkpoints" / "camera_longterm" / "best_model.pt"
+    if not ckpt.exists():
+        ckpt = SCRIPT_DIR / "checkpoints" / "camera_v2" / "best_model.pt"
     if not ckpt.exists():
         ckpt = SCRIPT_DIR / "checkpoints" / "demo2_v3" / "best_model.pt"
     if not ckpt.exists():
