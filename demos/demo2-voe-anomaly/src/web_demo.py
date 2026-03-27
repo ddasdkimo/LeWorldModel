@@ -174,13 +174,87 @@ async def index():
     return HTMLResponse(FRONTEND_HTML)
 
 
+import threading, queue
+
+# Shared frame queue between capture thread and websocket
+_frame_queue = queue.Queue(maxsize=2)
+_stop_event = threading.Event()
+
+
+def _capture_and_infer(rtsp_url):
+    """在獨立線程中執行：讀取 RTSP + LeWM 推論 + 編碼 JPEG"""
+    cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    if not cap.isOpened():
+        _frame_queue.put({"error": "Cannot connect"})
+        return
+
+    _frame_queue.put({"status": "connected"})
+    ENGINE.reset()
+    frame_skip = 0
+
+    while not _stop_event.is_set():
+        ret, frame = cap.read()
+        if not ret:
+            _frame_queue.put({"error": "Stream lost"})
+            break
+
+        frame_skip += 1
+        if frame_skip % 5 != 0:
+            continue
+
+        t0 = time.perf_counter()
+        surprise = ENGINE.compute(frame)
+        infer_ms = (time.perf_counter() - t0) * 1000
+
+        threshold = ENGINE.get_threshold()
+        is_anomaly = surprise is not None and threshold is not None and surprise > threshold
+
+        display = cv2.resize(frame, (640, 360))
+        if is_anomaly:
+            cv2.rectangle(display, (0, 0), (639, 359), (0, 0, 255), 4)
+            cv2.putText(display, "ANOMALY", (10, 35),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+        else:
+            cv2.putText(display, "Normal", (10, 35),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 200, 0), 2)
+
+        if surprise is not None:
+            cv2.putText(display, f"Surprise: {surprise:.5f}", (10, 65),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            cv2.putText(display, f"Infer: {infer_ms:.1f}ms", (10, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+
+        _, buf = cv2.imencode('.jpg', display, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        b64 = base64.b64encode(buf).decode('utf-8')
+
+        msg = {
+            "frame": b64,
+            "surprise": surprise,
+            "threshold": threshold,
+            "is_anomaly": is_anomaly,
+            "infer_ms": round(infer_ms, 1),
+            "frame_count": ENGINE.frame_count,
+            "history": list(ENGINE.surprise_history)[-200:],
+            "stats": ENGINE.get_stats(),
+        }
+
+        # Drop old frames if queue full
+        if _frame_queue.full():
+            try:
+                _frame_queue.get_nowait()
+            except queue.Empty:
+                pass
+        _frame_queue.put(msg)
+
+    cap.release()
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    loop = asyncio.get_event_loop()
 
     try:
-        # Wait for start command
         data = await websocket.receive_json()
         rtsp_url = data.get("rtsp", "")
         if not rtsp_url:
@@ -189,69 +263,33 @@ async def websocket_endpoint(websocket: WebSocket):
 
         await websocket.send_json({"status": "connecting", "rtsp": rtsp_url})
 
-        cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        if not cap.isOpened():
-            await websocket.send_json({"error": f"Cannot connect to {rtsp_url}"})
-            return
+        # Clear state
+        _stop_event.clear()
+        while not _frame_queue.empty():
+            _frame_queue.get_nowait()
 
-        await websocket.send_json({"status": "connected"})
-        ENGINE.reset()
+        # Start capture+inference in background thread
+        worker = threading.Thread(target=_capture_and_infer, args=(rtsp_url,), daemon=True)
+        worker.start()
 
-        frame_skip = 0
         while True:
-            # Run blocking cap.read() in thread pool to avoid blocking event loop
-            ret, frame = await loop.run_in_executor(None, cap.read)
-            if not ret:
-                await websocket.send_json({"error": "Stream lost"})
-                break
-
-            frame_skip += 1
-            if frame_skip % 5 != 0:  # ~5 fps
+            # Non-blocking get from queue
+            try:
+                msg = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: _frame_queue.get(timeout=2.0))
+            except queue.Empty:
                 continue
 
-            # Compute surprise
-            t0 = time.perf_counter()
-            surprise = ENGINE.compute(frame)
-            infer_ms = (time.perf_counter() - t0) * 1000
+            if "error" in msg:
+                await websocket.send_json(msg)
+                break
+            if "status" in msg:
+                await websocket.send_json(msg)
+                continue
 
-            threshold = ENGINE.get_threshold()
-            is_anomaly = surprise is not None and threshold is not None and surprise > threshold
-
-            # Draw overlay on frame
-            display = cv2.resize(frame, (640, 360))
-            if is_anomaly:
-                cv2.rectangle(display, (0, 0), (639, 359), (0, 0, 255), 4)
-                cv2.putText(display, "ANOMALY", (10, 35),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
-            else:
-                cv2.putText(display, "Normal", (10, 35),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 200, 0), 2)
-
-            if surprise is not None:
-                cv2.putText(display, f"Surprise: {surprise:.5f}", (10, 65),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-                cv2.putText(display, f"Infer: {infer_ms:.1f}ms", (10, 90),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-
-            # Encode frame as JPEG
-            _, buf = cv2.imencode('.jpg', display, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            b64 = base64.b64encode(buf).decode('utf-8')
-
-            # Send data
-            msg = {
-                "frame": b64,
-                "surprise": surprise,
-                "threshold": threshold,
-                "is_anomaly": is_anomaly,
-                "infer_ms": round(infer_ms, 1),
-                "frame_count": ENGINE.frame_count,
-                "history": list(ENGINE.surprise_history)[-200:],
-                "stats": ENGINE.get_stats(),
-            }
             await websocket.send_json(msg)
 
-            # Check for stop command (non-blocking)
+            # Check for stop command
             try:
                 cmd = await asyncio.wait_for(websocket.receive_json(), timeout=0.001)
                 if cmd.get("action") == "stop":
@@ -259,12 +297,13 @@ async def websocket_endpoint(websocket: WebSocket):
             except (asyncio.TimeoutError, Exception):
                 pass
 
-        cap.release()
+        _stop_event.set()
         await websocket.send_json({"status": "stopped"})
 
     except WebSocketDisconnect:
-        pass
+        _stop_event.set()
     except Exception as e:
+        _stop_event.set()
         try:
             await websocket.send_json({"error": str(e)})
         except:
